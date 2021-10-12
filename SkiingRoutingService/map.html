@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="shortcut icon" type="image/x-icon"
+		href="https://leafletjs.com/examples/quick-start/docs/images/favicon.ico">
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+		integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+		crossorigin="" />
+	<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+		integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+		crossorigin=""></script>
+</head>
+
+<body>
+	<div id="mapid" style="width: 100%; height: 100vh;"></div>
+	<script>
+		var mymap = L.map('mapid').setView([46.47917,13.773135], 15);
+		var command = L.control({position: 'topright'});
+		command.onAdd = function (map) {
+			var div = L.DomUtil.create('div', 'command');
+
+			div.innerHTML = '<select onChange="combo(this)">  <option>Kranjska Gora, Slovenia</option>  <option>Crystal Mountain, USA</option>  <option>Stevens Pass, USA</option><option>Kopaonik, Serbia</option><option>Perisher, Australia</option><option>SkiWelt Wilder Kaiser Brixental, Austria</option></select>'; 
+			return div;
+		};
+		command.addTo(mymap);
+		L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+			maxZoom: 18,
+			attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+				'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+			id: 'mapbox/streets-v11',
+			tileSize: 512,
+			zoomOffset: -1
+		}).addTo(mymap);
+
+		function combo(thelist)
+		{
+			var idx = thelist.selectedIndex;
+			var content = thelist.options[idx].innerHTML;
+			switch(content){
+				case "Kranjska Gora, Slovenia":
+					mymap.setView([46.47917,13.773135], 15);
+				break;
+				case "Crystal Mountain, USA":
+					mymap.setView([46.92989804605762,-121.4843273162842], 14);
+				break;
+				case "Stevens Pass, USA":
+					mymap.setView([47.7359321102192,-121.095492839], 15);
+				break;
+				case "Kopaonik, Serbia":
+					mymap.setView([43.292794243052626,20.82093715667725], 14);
+				break;
+				case "Perisher, Australia":
+					mymap.setView([-36.39883285871267,148.4012603759766], 14);
+				break;
+				case "SkiWelt Wilder Kaiser Brixental, Austria":
+					mymap.setView([47.4339,12.3368], 12);
+				break;
+			}
+		}
+
+		var fromIcon = L.icon({iconUrl: 'https://icons8.github.io/flat-color-icons/svg/down.svg', iconSize:30, popupAnchor:-150});
+		var toIcon = L.icon({iconUrl: 'https://icons8.github.io/flat-color-icons/svg/collect.svg', iconSize:30, popupAnchor:-150});
+
+		var fromMarker;
+		var toMarker;
+
+		var state = 0;
+		var from;
+		var to;
+		var oldGeoJson;
+		function onMapClick(e) {
+			switch (state) {
+				case 0:
+					if(fromMarker){
+						fromMarker.removeFrom(mymap);
+						toMarker.removeFrom(mymap);
+					}
+					fromMarker=L.marker(e.latlng, {icon: fromIcon}).addTo(mymap);
+					from = e.latlng;
+					state = 1;
+					break;
+				case 1:
+					to = e.latlng;
+					toMarker=L.marker(e.latlng, {icon: toIcon}).addTo(mymap);
+					fetch("/nav?from=" + from.lat+","+from.lng + "&to=" + to.lat+","+to.lng)
+						.then(response => response.json())
+						.then(json => {
+							if(oldGeoJson){
+								oldGeoJson.removeFrom(mymap);
+							}
+							oldGeoJson = L.geoJSON(json);
+							oldGeoJson.addTo(mymap);
+						});
+					state = 0;
+					break;
+			}
+		}
+
+		mymap.on('click', onMapClick);
+	</script>
+</body>
+
+</html>
